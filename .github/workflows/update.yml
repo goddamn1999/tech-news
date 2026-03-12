@@ -1,42 +1,99 @@
 name: Update News (GitHub Pages)
 
+# 触发条件：每6小时定时运行 + 手动触发
 on:
   schedule:
-    - cron: "0 */6 * * *"   # 每 6 小时运行一次（UTC）
-  workflow_dispatch:
+    - cron: "0 */6 * * *"   # 每 6 小时运行一次（UTC时间，北京时间+8小时）
+  workflow_dispatch:        # 支持手动触发
 
+# 权限配置（最小权限原则）
 permissions:
-  contents: write
+  contents: write           # 仅授予写入代码库的权限
 
+# 并发控制：避免同一时间多任务冲突
 concurrency:
   group: update-news
-  cancel-in-progress: false
+  cancel-in-progress: false # 不取消正在进行的任务，避免数据丢失
 
 jobs:
-  build:
+  build-and-update:
     runs-on: ubuntu-latest
+    # 增加环境变量配置（可选，用于自定义路径）
+    env:
+      TEMPLATE_PATH: "index.html"
+      OUTPUT_PATH: "index.html"
+    
     steps:
-      - name: Checkout
+      # 1. 检出代码库
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # 仅拉取最新提交，提升速度
 
-      - name: Setup Python
+      # 2. 设置 Python 环境
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"    # 缓存 pip 依赖，加速后续运行
 
-      - name: Install dependencies
+      # 3. 安装系统依赖（jieba 可能需要）
+      - name: Install system dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install feedparser
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+            python3-dev \
+            gcc
+        shell: bash
 
-      - name: Update index.html
+      # 4. 安装 Python 依赖（适配增强版脚本）
+      - name: Install Python dependencies
         run: |
+          python -m pip install --upgrade pip setuptools wheel
+          # 安装增强版脚本所需的所有依赖
+          pip install \
+            feedparser \
+            requests \
+            beautifulsoup4 \
+            jieba
+        shell: bash
+
+      # 5. 运行新闻更新脚本
+      - name: Run news update script
+        run: |
+          # 执行脚本并输出日志，便于调试
           python update_news.py
+        shell: bash
+        # 可选：超时控制（避免脚本卡死）
+        timeout-minutes: 10
 
-      - name: Commit and push if changed
+      # 6. 提交并推送更改
+      - name: Commit and push changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git diff --cached --quiet || git commit -m "chore: update news"
-          git push
+          # 配置 Git 身份
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 检查是否有文件变更
+          git add index.html keyword_stats.json  # 包含分析结果文件
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            # 提交并推送
+            git commit -m "chore: update news and analysis data $(date +'%Y-%m-%d %H:%M:%S')"
+            git push
+            echo "Changes pushed successfully"
+          fi
+        shell: bash
+        # 即使前面步骤警告，也继续执行（避免因脚本警告导致提交失败）
+        continue-on-error: false
+
+      # 7. 可选：上传日志（便于调试）
+      - name: Upload debug logs
+        uses: actions/upload-artifact@v4
+        if: failure()  # 仅在失败时上传
+        with:
+          name: debug-logs
+          path: |
+            *.log
+            keyword_stats.json
+          retention-days: 7  # 日志保留7天
