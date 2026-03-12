@@ -1,53 +1,281 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>科技新闻自动更新</title>
-  <style>
-    :root { --fg:#111; --muted:#666; --bg:#fff; --card:#f6f7f9; --link:#0b57d0; }
-    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; color:var(--fg); background:var(--bg); }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 28px 16px 60px; }
-    header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    h1 { font-size: 22px; margin: 0; }
-    .meta { color: var(--muted); font-size: 13px; }
-    .card { margin-top: 16px; background: var(--card); border-radius: 12px; padding: 14px 14px; }
-    ul { list-style: none; padding: 0; margin: 0; }
-    .item { padding: 10px 8px; border-bottom: 1px solid rgba(0,0,0,.06); display:flex; gap:10px; align-items:baseline; justify-content:space-between; }
-    .item:last-child { border-bottom: none; }
-    a.title { color: var(--link); text-decoration: none; line-height: 1.35; }
-    a.title:hover { text-decoration: underline; }
-    .time { color: var(--muted); font-size: 12px; white-space: nowrap; }
-    footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
-    code { background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 6px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球重大事件汇总 | 实时新闻分析</title>
+    <!-- 可选：引入外部样式/图标 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 头部样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+
+        .update-time {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* 分析区域样式 */
+        .analysis-container {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .analysis-card {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .analysis-card h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            align-items: center;
+        }
+
+        .analysis-card h3 i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+
+        /* 关键词样式 */
+        .keywords-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .keyword-item {
+            padding: 8px 15px;
+            background: #e7f5ff;
+            color: #0277bd;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .keyword-item:hover {
+            background: #007bff;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 分类统计样式 */
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e9ecef;
+        }
+
+        .category-item:last-child {
+            border-bottom: none;
+        }
+
+        .category-name {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .category-name::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* 不同分类的颜色标识 */
+        .category-name[title="国际新闻"]::before { background: #007bff; }
+        .category-name[title="国内要闻"]::before { background: #28a745; }
+        .category-name[title="财经大事"]::before { background: #ffc107; }
+        .category-name[title="全球时政"]::before { background: #dc3545; }
+        .category-name[title="突发新闻"]::before { background: #6610f2; }
+
+        .category-value {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        /* 新闻列表样式 */
+        .news-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .news-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .news-section h3 i {
+            margin-right: 8px;
+            color: #28a745;
+        }
+
+        .news-list {
+            list-style: none;
+        }
+
+        .news-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background 0.2s;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-item:hover {
+            background: #f8f9fa;
+        }
+
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .category-tag {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+        }
+
+        /* 分类标签配色 */
+        .category-tag.international { background: #007bff; }
+        .category-tag.domestic { background: #28a745; }
+        .category-tag.finance { background: #ffc107; color: #212529; }
+        .category-tag.politics { background: #dc3545; }
+        .category-tag.breaking { background: #6610f2; }
+
+        .publish-time {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .news-title {
+            text-decoration: none;
+            color: #2c3e50;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .news-title:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .analysis-container {
+                gap: 15px;
+            }
+
+            .analysis-card, .news-section {
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>科技新闻自动更新</h1>
-      <div class="meta">最近更新：<span id="updated">2026-03-12 09:21</span></div>
-    </header>
-
-    <div class="card">
-      <ul>
-        <li class="item">  <a class="title" href="https://www.ithome.com/0/928/465.htm" target="_blank" rel="noopener noreferrer">宏碁 2025 年全年合并营收 2756.28 亿新台币，增长 4.1%</a>  <span class="time">Thu, 12 Mar 2026 09:19:50 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/464.htm" target="_blank" rel="noopener noreferrer">大疆首款 8K 高清旗舰全景无人机 Avata 360 官宣 3 月 26 日发布</a>  <span class="time">Thu, 12 Mar 2026 09:17:52 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/463.htm" target="_blank" rel="noopener noreferrer">叫板微软：马斯克官宣数字擎天柱 / Macrohard，可模拟整个公司运作</a>  <span class="time">Thu, 12 Mar 2026 09:13:04 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/462.htm" target="_blank" rel="noopener noreferrer">长安新一代“蓝鲸超擎”混动技术官宣，城区百公里油耗不到 3 升</a>  <span class="time">Thu, 12 Mar 2026 09:12:53 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/461.htm" target="_blank" rel="noopener noreferrer">本田自 1957 年上市以来首次年度亏损，部分高管自愿“降薪谢罪”</a>  <span class="time">Thu, 12 Mar 2026 09:06:26 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/460.htm" target="_blank" rel="noopener noreferrer">Counterpoint：部分存储器春节前后价格翻倍有余，供应短缺将持续到 2027H2</a>  <span class="time">Thu, 12 Mar 2026 09:03:49 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/458.htm" target="_blank" rel="noopener noreferrer">特斯拉 Cybercab 无人出租车配备盲文标识，方便视障乘客操作</a>  <span class="time">Thu, 12 Mar 2026 08:59:50 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/457.htm" target="_blank" rel="noopener noreferrer">国家反诈中心上线 AI 内容鉴定功能，可辨图像、视频、文本、音频内容</a>  <span class="time">Thu, 12 Mar 2026 08:57:17 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/456.htm" target="_blank" rel="noopener noreferrer">消息称印度计划新设万亿卢比基金，重金扶持本土芯片产业</a>  <span class="time">Thu, 12 Mar 2026 08:46:33 GMT</span></li>
-<li class="item">  <a class="title" href="https://www.ithome.com/0/928/454.htm" target="_blank" rel="noopener noreferrer">理想汽车 2025 年营收 1123 亿元同比下降 22.3%，净利润 11 亿元大降 85.8%</a>  <span class="time">Thu, 12 Mar 2026 08:43:18 GMT</span></li>
-      </ul>
+    <!-- 头部区域 -->
+    <div class="header">
+        <h1>全球重大事件汇总</h1>
+        <div class="update-time">最后更新时间：{{UPDATED_AT}}</div>
     </div>
 
-    <footer>
-      <div>数据来源：RSS（示例默认 IT之家）。</div>
-      <div>自动化：GitHub Actions 每 6 小时运行 <code>update_news.py</code> 并提交生成的 <code>index.html</code>。</div>
+    <!-- 分析数据区域 -->
+    <div class="analysis-container">
+        <!-- 热点关键词 -->
+        <div class="analysis-card">
+            <h3><i class="fa fa-tags"></i> 热点关键词</h3>
+            <div class="keywords-wrapper">
+                {{TOP_KEYWORDS}}
+            </div>
+        </div>
+
+        <!-- 分类统计 -->
+        <div class="analysis-card">
+            <h3><i class="fa fa-bar-chart"></i> 新闻分类统计</h3>
+            <div class="categories-wrapper">
+                {{CATEGORY_STATS}}
+            </div>
+        </div>
+    </div>
+
+    <!-- 新闻列表区域 -->
+    <div class="news-section">
+        <h3><i class="fa fa-newspaper-o"></i> 最新新闻列表</h3>
+        <ul class="news-list">
+            {{NEWS_ITEMS}}
+        </ul>
+    </div>
+
+    <!-- 可选：页脚 -->
+    <footer style="text-align: center; margin-top: 30px; color: #6c757d; font-size: 0.8rem;">
+        <p>数据来源：各大新闻媒体 RSS 源 | 分析基于关键词频率统计</p>
     </footer>
-  </div>
+
+    <!-- 兼容注释标记（备用） -->
+    <!-- NEWS_ITEMS_START -->
+    <!-- NEWS_ITEMS_END -->
+    <!-- TOP_KEYWORDS_START -->
+    <!-- TOP_KEYWORDS_END -->
+    <!-- CATEGORY_STATS_START -->
+    <!-- CATEGORY_STATS_END -->
 </body>
 </html>
